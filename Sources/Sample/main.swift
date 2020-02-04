@@ -2,8 +2,8 @@ import SwiftyMath
 import SwiftyKnots
 import SwiftyHomology
 
-let K = Knot(3, 1)
-let Kh = KhovanovHomology<𝐙>(K)
+let G = GridDiagram.load("10_152")!
+let gens = GridComplex.GeneratorSet(for: G) { x in x.AlexanderDegree >= 0 }
+let f = HFKCalculator(diagram: G, generators: gens)
 
-print(K.name)
-Kh.printTable()
+f.run()
