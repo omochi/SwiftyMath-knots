@@ -45,6 +45,7 @@ extension GridComplex {
         
         public func hash(into hasher: inout Hasher) {
             hasher.combine(code)
+            hasher.combine(size)
         }
         
         public static func < (x: Self, y: Self) -> Bool {

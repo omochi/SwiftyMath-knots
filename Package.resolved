@@ -1,0 +1,34 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "SwiftyMath",
+        "repositoryURL": "https://github.com/taketo1024/SwiftyMath.git",
+        "state": {
+          "branch": null,
+          "revision": "004384e31d1edcdccef53c1f15258169c581ab10",
+          "version": "2.0.0"
+        }
+      },
+      {
+        "package": "SwiftyHomology",
+        "repositoryURL": "https://github.com/taketo1024/SwiftyMath-homology.git",
+        "state": {
+          "branch": null,
+          "revision": "502f316b7ec2b8942de510b40fcac87dc8e873b8",
+          "version": "2.0.0"
+        }
+      },
+      {
+        "package": "SwiftySolver",
+        "repositoryURL": "https://github.com/taketo1024/SwiftyMath-solver.git",
+        "state": {
+          "branch": null,
+          "revision": "dc4b226fe98dbbf987efc1b665682f263e00bbdf",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

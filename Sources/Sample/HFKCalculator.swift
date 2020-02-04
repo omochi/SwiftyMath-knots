@@ -32,16 +32,21 @@ public final class HFKCalculator {
             generators: generators
         ).differential
         
-        let H = Array(gens).parallelFlatMap { (i, gens) -> [(Int, Int, Int)] in
-            self.graph(generators: gens, differential: d)
-                .vertices
-                .map{
+        var H: [(Int, Int, Int)] = []
+        
+        for (i, gens) in gens {
+            let h: [(Int, Int, Int)] = self.graph(generators: gens, differential: d)
+                .vertexArray
+                .filter { $0.isValid }
+                .map { $0.data }
+                .map ({
                     $0.MaslovDegree
-                }
+                })
                 .countMultiplicities()
-                .map{
+                .map ({
                     (k, n) in (k, i, n)
-                }
+                })
+            H.append(contentsOf: h)
         }
 
         print(H)
@@ -53,6 +58,25 @@ public final class HFKCalculator {
         typealias Graph = SimpleDirectedGraph<Generator>
         
         var graph = Graph()
+        
+        self.graphInout(
+            generators: generators,
+            differential: d,
+            graph: &graph
+        )
+
+        return graph
+    }
+    
+    private func graphInout<S: Sequence>(
+        generators: S,
+        differential d: ChainMap1<GridComplex.BaseModule, GridComplex.BaseModule>,
+        graph: inout SimpleDirectedGraph<GridComplex.Generator>)
+        where S.Element == GridComplex.Generator
+    {
+        typealias Generator = GridComplex.Generator
+        typealias Graph = SimpleDirectedGraph<Generator>
+        
         var gens = generators.group{ $0.MaslovDegree }.mapValues{ Set($0) }
         let mRange = gens.keys.range!
         
@@ -84,30 +108,38 @@ public final class HFKCalculator {
             //      y   b   b'          b   b'
 
             for x in domain {
-                guard let y = graph.targets[x]?.anyElement else {
+                let xv = graph.vertex(forID: x)
+                
+                guard let yi = xv.pointee.outputs.anyElement else {
                     continue
                 }
                 
-                for a in graph.cotargets[y] ?? [] where a != x {
-                    for b in graph.targets[x] ?? [] where b != y {
-                        if graph.targets[a]?.contains(b) ?? false {
-                            graph.disconnect(a, b)
+                let yv = graph.vertex(atIndex: yi)
+                
+                for ai in yv.pointee.inputs {
+                    let av = graph.vertex(atIndex: ai)
+                    guard av.pointee.index != xv.pointee.index else { continue }
+                    
+                    for bi in xv.pointee.outputs {
+                        let bv = graph.vertex(atIndex: bi)
+                        guard bv.pointee.index != yv.pointee.index else { continue }
+                        
+                        if av.pointee.outputs.contains(bi) {
+                            graph.disconnect(av, bv)
                         } else {
-                            graph.connect(a, b)
+                            graph.connect(av, bv)
                         }
                     }
                 }
-                
-                graph.remove(x)
-                graph.remove(y)
-                codomain.remove(y)
+            
+                graph.remove(xv)
+                graph.remove(yv)
+                codomain.remove(yv.pointee.data)
             }
             
             gens[k] = nil
             gens[k - 1] = codomain
         }
-        
-        return graph
     }
 }
 

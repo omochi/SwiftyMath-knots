@@ -6,53 +6,89 @@
 //
 
 public struct SimpleDirectedGraph<Id: Hashable> {
-    public private(set) var vertices:  Set<Id>
-    public private(set) var targets:   [Id : Set<Id>]
-    public private(set) var cotargets: [Id : Set<Id>]
+    public struct Vertex {
+        var index: Int
+        var isValid: Bool
+        var inputs: Set<Int>
+        var outputs: Set<Int>
+        var data: Id
+    }
+
+    public var vertexArray: [Vertex] = []
+    public var vertexMap: [Id: Int] = [:]
+    
+    public func vertex(forID id: Id) -> UnsafeMutablePointer<Vertex> {
+        return vertex(atIndex: vertexMap[id]!)
+    }
+    
+    public func vertex(atIndex index: Int) -> UnsafeMutablePointer<Vertex> {
+        let p = vertexArray.withUnsafeBufferPointer { (bp: UnsafeBufferPointer<Vertex>) in
+            bp.baseAddress! + index
+        }
+        return UnsafeMutablePointer(mutating: p)
+    }
     
     public init() {
-        self.vertices = []
-        self.targets = [:]
-        self.cotargets = [:]
     }
     
     public mutating func add(_ id: Id) {
-        vertices.insert(id)
+        let vertex = Vertex(index: vertexArray.count,
+                            isValid: true,
+                            inputs: [],
+                            outputs: [],
+                            data: id)
+        vertexArray.append(vertex)
+        vertexMap[id] = vertex.index
     }
     
     public mutating func add<S: Sequence>(_ seq: S) where S.Element == Id {
-        vertices.formUnion(seq)
+        for x in seq {
+            add(x)
+        }
     }
     
     public mutating func remove(_ v: Id) {
-        for w in targets[v] ?? [] {
-            cotargets[w]?.remove(v)
+        let v = self.vertex(forID: v)
+        remove(v)
+    }
+    
+    public mutating func remove(_ v: UnsafeMutablePointer<Vertex>) {
+        for w in v.pointee.outputs {
+            let wv = self.vertex(atIndex: w)
+            wv.pointee.inputs.remove(v.pointee.index)
         }
-        for u in cotargets[v] ?? [] {
-            targets[u]?.remove(v)
+        
+        for u in v.pointee.inputs {
+            let uv = self.vertex(atIndex: u)
+            uv.pointee.outputs.remove(v.pointee.index)
         }
-        vertices.remove(v)
-        targets[v] = nil
-        cotargets[v] = nil
+        
+        v.pointee.isValid = false
     }
     
     public mutating func connect(_ v: Id, _ w: Id) {
         assert(v != w)
-        if targets[v] == nil {
-            targets[v] = [w]
-        } else {
-            targets[v]!.insert(w)
-        }
+        
+        let vv = self.vertex(forID: v)
+        let wv = self.vertex(forID: w)
 
-        if cotargets[w] == nil {
-            cotargets[w] = [v]
-        } else {
-            cotargets[w]!.insert(v)
-        }
+        connect(vv, wv)
+    }
+    
+    public mutating func connect(_ v: UnsafeMutablePointer<Vertex>, _ w: UnsafeMutablePointer<Vertex>) {
+        v.pointee.outputs.insert(w.pointee.index)
+        w.pointee.inputs.insert(v.pointee.index)
     }
     
     public mutating func disconnect(_ v: Id, _ w: Id) {
-        targets[v]?.remove(w)
-        cotargets[w]?.remove(v)
+        let vv = self.vertex(forID: v)
+        let wv = self.vertex(forID: w)
+    
+        disconnect(vv, wv)
     }
+    
+    public mutating func disconnect(_ v: UnsafeMutablePointer<Vertex>, _ w: UnsafeMutablePointer<Vertex>) {
+           v.pointee.outputs.remove(w.pointee.index)
+           w.pointee.inputs.remove(v.pointee.index)
+       }
 }
